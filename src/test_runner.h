@@ -1,95 +1,106 @@
 #pragma once
+
+#include <sstream>
+#include <stdexcept>
 #include <iostream>
-#include <string>
 #include <map>
 #include <set>
-#include <sstream>
-#include <exception>
+#include <string>
 #include <vector>
 
-template<class T>
-std::ostream& operator <<(std::ostream &os, const std::set<T> &s);
+using namespace std;
 
-template<class K, class V>
-std::ostream& operator <<(std::ostream &os, const std::map<K, V> &m);
+template <class T>
+ostream& operator << (ostream& os, const vector<T>& s) {
+  os << "{";
+  bool first = true;
+  for (const auto& x : s) {
+    if (!first) {
+      os << ", ";
+    }
+    first = false;
+    os << x;
+  }
+  return os << "}";
+}
 
-template<class V>
-std::ostream& operator <<(std::ostream &os, const std::vector<V> &m);
+template <class T>
+ostream& operator << (ostream& os, const set<T>& s) {
+  os << "{";
+  bool first = true;
+  for (const auto& x : s) {
+    if (!first) {
+      os << ", ";
+    }
+    first = false;
+    os << x;
+  }
+  return os << "}";
+}
+
+template <class K, class V>
+ostream& operator << (ostream& os, const map<K, V>& m) {
+  os << "{";
+  bool first = true;
+  for (const auto& kv : m) {
+    if (!first) {
+      os << ", ";
+    }
+    first = false;
+    os << kv.first << ": " << kv.second;
+  }
+  return os << "}";
+}
 
 template<class T, class U>
-void AssertEqual(const T &t, const U &u, const std::string &hint);
+void AssertEqual(const T& t, const U& u, const string& hint = {}) {
+  if (!(t == u)) {
+    ostringstream os;
+    os << "Assertion failed: " << t << " != " << u;
+    if (!hint.empty()) {
+       os << " hint: " << hint;
+    }
+    throw runtime_error(os.str());
+  }
+}
+
+void Assert(bool b, const string& hint);
 
 class TestRunner {
 public:
-	template<class TestFunc>
-	void RunTest(TestFunc func, const std::string &test_name);
+  template <class TestFunc>
+  void RunTest(TestFunc func, const string& test_name) {
+    try {
+      func();
+      cerr << test_name << " OK" << endl;
+    } catch (exception& e) {
+      ++fail_count;
+      cerr << test_name << " fail: " << e.what() << endl;
+    } catch (...) {
+      ++fail_count;
+      cerr << "Unknown exception caught" << endl;
+    }
+  }
 
-	~TestRunner();
+  ~TestRunner();
 
 private:
-	int fail_count = 0;
+  int fail_count = 0;
 };
 
-template<class V>
-std::ostream& operator <<(std::ostream &os, const std::vector<V> &v) {
-	os << "{";
-	bool first = true;
-	for (const auto &x : v) {
-		if (!first) {
-			os << ", ";
-		}
-		first = false;
-		os << x;
-	}
-	return os << "}";
+#define ASSERT_EQUAL(x, y) {            \
+  ostringstream os;                     \
+  os << #x << " != " << #y << ", "      \
+    << __FILE__ << ":" << __LINE__;     \
+  AssertEqual(x, y, os.str());          \
 }
 
-template<class T>
-std::ostream& operator <<(std::ostream &os, const std::set<T> &s) {
-	os << "{";
-	bool first = true;
-	for (const auto &x : s) {
-		if (!first) {
-			os << ", ";
-		}
-		first = false;
-		os << x;
-	}
-	return os << "}";
+#define ASSERT(x) {                     \
+  ostringstream os;                     \
+  os << #x << " is false, "             \
+    << __FILE__ << ":" << __LINE__;     \
+  Assert(x, os.str());                  \
 }
 
-template<class K, class V>
-std::ostream& operator <<(std::ostream &os, const std::map<K, V> &m) {
-	os << "{";
-	bool first = true;
-	for (const auto &kv : m) {
-		if (!first) {
-			os << ", ";
-		}
-		first = false;
-		os << kv.first << ": " << kv.second;
-	}
-	return os << "}";
-}
-
-template<class T, class U>
-void AssertEqual(const T &t, const U &u, const std::string &hint) {
-	if (t != u) {
-		std::ostringstream os;
-		os << "Assertion failed: " << t << " != " << u << " hint: " << hint;
-		throw std::runtime_error(os.str());
-	}
-}
-
-template<class TestFunc>
-void TestRunner::RunTest(TestFunc func, const std::string &test_name) {
-	try {
-		func();
-		std::cerr << test_name << " OK" << std::endl;
-	} catch (std::runtime_error &e) {
-		++fail_count;
-		std::cerr << test_name << " fail: " << e.what() << std::endl;
-	}
-}
-
-void Assert(bool b, const std::string &hint);
+#define RUN_TEST(tr, func) \
+  tr.RunTest(func, #func)

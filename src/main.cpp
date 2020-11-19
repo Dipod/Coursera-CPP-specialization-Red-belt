@@ -12,7 +12,19 @@ using namespace std;
 template<typename ForwardIterator, typename UnaryPredicate>
 ForwardIterator max_element_if(ForwardIterator first, ForwardIterator last,
 		UnaryPredicate pred) {
-	// Реализуйте эту функцию
+	ForwardIterator max_element = last;
+	for (ForwardIterator it = first; it != last; it++) {
+		if (pred(*it)) {
+			if (max_element == last) {
+				max_element = it;
+			} else {
+				if(*max_element < *it){
+					max_element = it;
+				}
+			}
+		}
+	}
+	return max_element;
 }
 
 void TestUniqueMax() {

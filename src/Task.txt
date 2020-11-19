@@ -1,97 +1,125 @@
-Вам дан класс Logger и макрос LOG
+Давайте представим, что вы разрабатываете инновационный сервис поиска авиабилетов AviaScanner.
+В вашем сервисе авиабилет представляется в виде структуры
 
-class Logger {
-public:
-  explicit Logger(ostream& output_stream) : os(output_stream) {
-  }
-
-  void SetLogLine(bool value) { log_line = value; }
-  void SetLogFile(bool value) { log_file = value; }
-
-  void Log(const string& message);
-
-private:
-  ostream& os;
-  bool log_line = false;
-  bool log_file = false;
+struct Date {
+  int year, month, day;
 };
 
-#define LOG(logger, message) ...
+struct Time {
+  int hours, minutes;
+};
 
-Параметры макроса LOG — объект класса Logger и строковое сообщение, которое должно быть передано в метод Log.
-В зависимости от настроек объекта класса Logger логируемое сообщение должно предваряться именем файла или номером строки.
-Смотрите юнит-тесты в заготовке решения для более подробного описания поведения.
+struct AirlineTicket {
+  string from;
+  string to;
+  string airline;
+  Date departure_date;
+  Time departure_time;
+  Date arrival_date;
+  Time arrival_time;
+  uint64_t price;
+};
 
-Реализуйте макрос LOG так, чтобы он добавлял в логируемое сообщение имя файла и номер строки в зависимости от настроек объекта logger.
-Пришлите на проверку cpp-файл, содержащий
+В данный момент вы работаете над функцией сортировки результатов поиска.
+Пользователь вводит свой запрос и получает список подходящих билетов.
+Дальше он может задавать параметры сортировки этого списка.
+Например, сначала по цене, затем по времени вылета и, наконец, по аэропорту прилёта.
 
-    * реализацию макроса LOG
-    * объявление класса Logger, при этом вы можете при необходимости добавлять в него дополнительные поля и методы
-    * определения всех методов класса Logger
+Чтобы реализовать сортировку как в примере, можно воспользоваться алгоритмом цифровой сортировки:
 
-#include "test_runner.h"
-#include <sstream>
+void SortTickets(vector<AirlineTicket>& tixs) {
+  stable_sort(begin(tixs), end(tixs), [](const AirlineTicket& lhs, const AirlineTicket& rhs) {
+    return lhs.to < rhs.to;
+  });
+  stable_sort(begin(tixs), end(tixs), [](const AirlineTicket& lhs, const AirlineTicket& rhs) {
+    return lhs.departure_time < rhs.departure_time;
+  });
+  stable_sort(begin(tixs), end(tixs), [](const AirlineTicket& lhs, const AirlineTicket& rhs) {
+    return lhs.price < rhs.price;
+  });
+}
+
+Как видите, в примере выше есть дублирование кода — нам пришлось написать три лямбда-функции,
+которые отличаются только полем, по которому выполняется сортировка.
+От этого дублирования можно избавиться, написав макрос SORT_BY и применив его следующим образом:
+
+void SortTickets(vector<AirlineTicket>& tixs) {
+  stable_sort(begin(tixs), end(tixs), SORT_BY(to));
+  stable_sort(begin(tixs), end(tixs), SORT_BY(departure_time));
+  stable_sort(begin(tixs), end(tixs), SORT_BY(price));
+}
+
+Напишите макрос SORT_BY, который принимает в качестве параметра имя поля структуры AirlineTicket.
+Вызов sort(begin(tixs), end(tixs), SORT_BY(some_field)) должен приводить к сортировке вектора tixs по полю some_field.
+
+Вам дан файл airline_ticket.h, содержащий объявления структур Time, Date и AirlineTicket,
+а также заготовка решения в виде cpp-файла sort_by.cpp. Пришлите на проверку cpp-файл, который
+
+    * подключает заголовочный файл airline_ticket.h
+    * содержит макрос SORT_BY
+    * содержит определения операторов, необходимых для использования классов Date и Time в алгоритме сортировки и макросе ASSERT_EQUAL
+    (формат вывода в поток можете выбрать произвольный)
+
+airline_ticket.h
+
+#pragma once
+
 #include <string>
 using namespace std;
 
-class Logger {
-public:
-  explicit Logger(ostream& output_stream) : os(output_stream) {
-  }
-
-  void SetLogLine(bool value) { log_line = value; }
-  void SetLogFile(bool value) { log_file= value; }
-
-  void Log(const string& message);
-
-private:
-  ostream& os;
-  bool log_line = false;
-  bool log_file = false;
+struct Date {
+  int year, month, day;
 };
 
-#define LOG(logger, message) ...
+struct Time {
+  int hours, minutes;
+};
 
-void TestLog() {
-/* Для написания юнит-тестов в этой задаче нам нужно фиксировать конкретные
- * номера строк в ожидаемом значении (см. переменную expected ниже). Если
- * мы добавляем какой-то код выше функции TestLog, то эти номера строк меняются,
- * и наш тест начинает падать. Это неудобно.
- *
- * Чтобы этого избежать, мы используем специальный макрос #line
- * (http://en.cppreference.com/w/cpp/preprocessor/line), который позволяет
- * переопределить номер строки, а также имя файла. Благодаря ему, номера
- * строк внутри функции TestLog будут фиксированы независимо от того, какой
- * код мы добавляем перед ней*/
-#line 1 "logger.cpp"
+struct AirlineTicket {
+  string from;
+  string to;
+  string airline;
+  Date departure_date;
+  Time departure_time;
+  Date arrival_date;
+  Time arrival_time;
+  int price;
+};
 
-  ostringstream logs;
-  Logger l(logs);
-  LOG(l, "hello");
+sort_by.cpp
 
-  l.SetLogFile(true);
-  LOG(l, "hello");
+#include "airline_ticket.h"
+#include "test_runner.h"
 
-  l.SetLogLine(true);
-  LOG(l, "hello");
+#include <algorithm>
+#include <numeric>
+using namespace std;
 
-  l.SetLogFile(false);
-  LOG(l, "hello");
+#define SORT_BY(field)  // Реализуйте этот макрос, а также необходимые операторы для классов Date и Time
 
-  string expected = "hello\n";
-  expected += "logger.cpp hello\n";
-  expected += "logger.cpp:10 hello\n";
-  expected += "Line 13 hello\n";
-  ASSERT_EQUAL(logs.str(), expected);
+void TestSortBy() {
+  vector<AirlineTicket> tixs = {
+    {"VKO", "AER", "Utair",     {2018, 2, 28}, {17, 40}, {2018, 2, 28}, {20,  0}, 1200},
+    {"AER", "VKO", "Utair",     {2018, 3,  5}, {14, 15}, {2018, 3,  5}, {16, 30}, 1700},
+    {"AER", "SVO", "Aeroflot",  {2018, 3,  5}, {18, 30}, {2018, 3,  5}, {20, 30}, 2300},
+    {"PMI", "DME", "Iberia",    {2018, 2,  8}, {23, 00}, {2018, 2,  9}, { 3, 30}, 9000},
+    {"CDG", "SVO", "AirFrance", {2018, 3,  1}, {13, 00}, {2018, 3,  1}, {17, 30}, 8000},
+  };
+
+  sort(begin(tixs), end(tixs), SORT_BY(price));
+  ASSERT_EQUAL(tixs.front().price, 1200);
+  ASSERT_EQUAL(tixs.back().price, 9000);
+
+  sort(begin(tixs), end(tixs), SORT_BY(from));
+  ASSERT_EQUAL(tixs.front().from, "AER");
+  ASSERT_EQUAL(tixs.back().from, "VKO");
+
+  sort(begin(tixs), end(tixs), SORT_BY(arrival_date));
+  ASSERT_EQUAL(tixs.front().arrival_date, (Date{2018, 2, 9}));
+  ASSERT_EQUAL(tixs.back().arrival_date, (Date{2018, 3, 5}));
 }
 
 int main() {
   TestRunner tr;
-  RUN_TEST(tr, TestLog);
+  RUN_TEST(tr, TestSortBy);
 }
-
-Замечание
-
-Если вы используете Visual Studio, у вас могут не проходить юнит-тесты из заготовки,
-потому что в этой среде макрос __FILE__ раскрывается в абсолютный путь до файла.
-Учитывайте это при отладке своего решения.

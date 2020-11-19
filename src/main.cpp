@@ -1,87 +1,74 @@
+#include "airline_ticket.h"
 #include "test_runner.h"
-#include <sstream>
-#include <string>
+
+#include <algorithm>
+#include <numeric>
+#include <tuple>
 using namespace std;
 
-class Logger {
-public:
-	explicit Logger(ostream &output_stream) :
-			os(output_stream) {
-	}
-
-	void SetLogLine(bool value) {
-		log_line = value;
-	}
-	void SetLogFile(bool value) {
-		log_file = value;
-	}
-
-	void Log(const string &message) const {
-		os << message << endl;
-	}
-
-	bool IsLogLine() const {
-		return log_line;
-	}
-
-	bool IsLogFile() const {
-		return log_file;
-	}
-
-private:
-	ostream &os;
-	bool log_line = false;
-	bool log_file = false;
-};
-
-#define LOG(logger, message) {								\
-		string file = __FILE__;								\
-		string line = to_string(__LINE__);					\
-		if(logger.IsLogFile() && logger.IsLogLine()) {		\
-			logger.Log(file + ":" + line + " " + message);	\
-		} else if(logger.IsLogFile()) {						\
-			logger.Log(file + " " + message);				\
-		} else if(logger.IsLogLine()) {						\
-			logger.Log("Line " + line + " " + message);		\
-		} else {											\
-			logger.Log(message);							\
-		}													\
+ostream& operator<<(ostream &os, const Date &s) {
+	os << s.year << " " << s.month << " " << s.day;
+	return os;
 }
 
-void TestLog() {
-	/* Для написания юнит-тестов в этой задаче нам нужно фиксировать конкретные
-	 * номера строк в ожидаемом значении (см. переменную expected ниже). Если
-	 * мы добавляем какой-то код выше функции TestLog, то эти номера строк меняются,
-	 * и наш тест начинает падать. Это неудобно.
-	 *
-	 * Чтобы этого избежать, мы используем специальный макрос #line
-	 * (http://en.cppreference.com/w/cpp/preprocessor/line), который позволяет
-	 * переопределить номер строки, а также имя файла. Благодаря ему, номера
-	 * строк внутри функции TestLog будут фиксированы независимо от того, какой
-	 * код мы добавляем перед ней*/
-#line 1 "logger.cpp"
+ostream& operator<<(ostream &os, const Time &s) {
+	os << s.hours << ":" << s.minutes;
+	return os;
+}
 
-	ostringstream logs;
-	Logger l(logs);
-	LOG(l, "hello");
+bool operator<(const Date &lhs, const Date &rhs) {
+	const auto lhs_key = tie(lhs.year, lhs.month, lhs.day);
+	const auto rhs_key = tie(rhs.year, rhs.month, rhs.day);
+	return lhs_key < rhs_key;
+}
 
-	l.SetLogFile(true);
-	LOG(l, "hello");
+bool operator<(const Time &lhs, const Time &rhs) {
+	const auto lhs_key = tie(lhs.hours, lhs.minutes);
+	const auto rhs_key = tie(rhs.hours, rhs.minutes);
+	return lhs_key < rhs_key;
+}
 
-	l.SetLogLine(true);
-	LOG(l, "hello");
+bool operator==(const Date &lhs, const Date &rhs) {
+	const auto lhs_key = tie(lhs.year, lhs.month, lhs.day);
+	const auto rhs_key = tie(rhs.year, rhs.month, rhs.day);
+	return lhs_key == rhs_key;
+}
 
-	l.SetLogFile(false);
-	LOG(l, "hello");
+bool operator==(const Time &lhs, const Time &rhs) {
+	const auto lhs_key = tie(lhs.hours, lhs.minutes);
+	const auto rhs_key = tie(rhs.hours, rhs.minutes);
+	return lhs_key == rhs_key;
+}
 
-	string expected = "hello\n";
-	expected += "logger.cpp hello\n";
-	expected += "logger.cpp:10 hello\n";
-	expected += "Line 13 hello\n";
-	ASSERT_EQUAL(logs.str(), expected);
+#define SORT_BY(field)											\
+	[](const AirlineTicket& lhs, const AirlineTicket& rhs) {	\
+		return lhs.field < rhs.field;							\
+	}
+
+void TestSortBy() {
+	vector<AirlineTicket> tixs = { { "VKO", "AER", "Utair", { 2018, 2, 28 }, {
+			17, 40 }, { 2018, 2, 28 }, { 20, 0 }, 1200 }, { "AER", "VKO",
+			"Utair", { 2018, 3, 5 }, { 14, 15 }, { 2018, 3, 5 }, { 16, 30 },
+			1700 }, { "AER", "SVO", "Aeroflot", { 2018, 3, 5 }, { 18, 30 }, {
+			2018, 3, 5 }, { 20, 30 }, 2300 }, { "PMI", "DME", "Iberia", { 2018,
+			2, 8 }, { 23, 00 }, { 2018, 2, 9 }, { 3, 30 }, 9000 }, { "CDG",
+			"SVO", "AirFrance", { 2018, 3, 1 }, { 13, 00 }, { 2018, 3, 1 }, {
+					17, 30 }, 8000 }, };
+
+sort(begin(tixs), end(tixs), SORT_BY(price));
+	ASSERT_EQUAL(tixs.front().price, 1200);
+	ASSERT_EQUAL(tixs.back().price, 9000);
+
+sort(begin(tixs), end(tixs), SORT_BY(from));
+	ASSERT_EQUAL(tixs.front().from, "AER");
+	ASSERT_EQUAL(tixs.back().from, "VKO");
+
+sort(begin(tixs), end(tixs), SORT_BY(arrival_date));
+	ASSERT_EQUAL(tixs.front().arrival_date, (Date { 2018, 2, 9 }));
+	ASSERT_EQUAL(tixs.back().arrival_date, (Date { 2018, 3, 5 }));
 }
 
 int main() {
 	TestRunner tr;
-	RUN_TEST(tr, TestLog);
+	RUN_TEST(tr, TestSortBy);
 }

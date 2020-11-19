@@ -1,97 +1,87 @@
 #include "test_runner.h"
-
+#include <sstream>
 #include <string>
-#include <vector>
-#include <list>
-#include <forward_list>
-#include <numeric>
-#include <iterator>
-
 using namespace std;
 
-template<typename ForwardIterator, typename UnaryPredicate>
-ForwardIterator max_element_if(ForwardIterator first, ForwardIterator last,
-		UnaryPredicate pred) {
-	ForwardIterator max_element = last;
-	for (ForwardIterator it = first; it != last; it++) {
-		if (pred(*it)) {
-			if (max_element == last) {
-				max_element = it;
-			} else {
-				if(*max_element < *it){
-					max_element = it;
-				}
-			}
-		}
+class Logger {
+public:
+	explicit Logger(ostream &output_stream) :
+			os(output_stream) {
 	}
-	return max_element;
+
+	void SetLogLine(bool value) {
+		log_line = value;
+	}
+	void SetLogFile(bool value) {
+		log_file = value;
+	}
+
+	void Log(const string &message) const {
+		os << message << endl;
+	}
+
+	bool IsLogLine() const {
+		return log_line;
+	}
+
+	bool IsLogFile() const {
+		return log_file;
+	}
+
+private:
+	ostream &os;
+	bool log_line = false;
+	bool log_file = false;
+};
+
+#define LOG(logger, message) {								\
+		string file = __FILE__;								\
+		string line = to_string(__LINE__);					\
+		if(logger.IsLogFile() && logger.IsLogLine()) {		\
+			logger.Log(file + ":" + line + " " + message);	\
+		} else if(logger.IsLogFile()) {						\
+			logger.Log(file + " " + message);				\
+		} else if(logger.IsLogLine()) {						\
+			logger.Log("Line " + line + " " + message);		\
+		} else {											\
+			logger.Log(message);							\
+		}													\
 }
 
-void TestUniqueMax() {
-	auto IsEven = [](int x) {
-		return x % 2 == 0;
-	};
+void TestLog() {
+	/* Для написания юнит-тестов в этой задаче нам нужно фиксировать конкретные
+	 * номера строк в ожидаемом значении (см. переменную expected ниже). Если
+	 * мы добавляем какой-то код выше функции TestLog, то эти номера строк меняются,
+	 * и наш тест начинает падать. Это неудобно.
+	 *
+	 * Чтобы этого избежать, мы используем специальный макрос #line
+	 * (http://en.cppreference.com/w/cpp/preprocessor/line), который позволяет
+	 * переопределить номер строки, а также имя файла. Благодаря ему, номера
+	 * строк внутри функции TestLog будут фиксированы независимо от того, какой
+	 * код мы добавляем перед ней*/
+#line 1 "logger.cpp"
 
-	const list<int> hill { 2, 4, 8, 9, 6, 4, 2 };
-	auto max_iterator = hill.begin();
-	advance(max_iterator, 2);
+	ostringstream logs;
+	Logger l(logs);
+	LOG(l, "hello");
 
-	vector<int> numbers(10);
-	iota(numbers.begin(), numbers.end(), 1);
+	l.SetLogFile(true);
+	LOG(l, "hello");
 
-	/*
-	 Мы не используем AssertEqual, потому что для итераторов
-	 отсутствует перегрузка оператора вывода в поток ostream.
-	 Разыменование здесь также недопустимо, так как оно может повлечь
-	 неопределенное поведение, если функция max_element_if, к примеру,
-	 вернула итератор, указывающий на конец контейнера.
-	 */
-	Assert(
-			max_element_if(numbers.begin(), numbers.end(), IsEven)
-					== --numbers.end(), "Expect the last element");
-	Assert(max_element_if(hill.begin(), hill.end(), IsEven) == max_iterator,
-			"Expect the maximal even number");
-}
+	l.SetLogLine(true);
+	LOG(l, "hello");
 
-void TestSeveralMax() {
-	struct IsCapitalized {
-		bool operator()(const string &s) {
-			return !s.empty() && isupper(s.front());
-		}
-	};
+	l.SetLogFile(false);
+	LOG(l, "hello");
 
-	const forward_list<string> text { "One", "two", "Three", "One", "Two",
-			"Three", "one", "Two", "three" };
-	auto max_iterator = text.begin();
-	advance(max_iterator, 4);
-
-	Assert(
-			max_element_if(text.begin(), text.end(), IsCapitalized())
-					== max_iterator, "Expect the first \"Two\"");
-}
-
-void TestNoMax() {
-	const vector<int> empty;
-	const string str = "Non-empty string";
-
-	auto AlwaysTrue = [](int) {
-		return true;
-	};
-	Assert(
-			max_element_if(empty.begin(), empty.end(), AlwaysTrue)
-					== empty.end(), "Expect end for empty container");
-
-	auto AlwaysFalse = [](char) {
-		return false;
-	};
-	Assert(max_element_if(str.begin(), str.end(), AlwaysFalse) == str.end(),
-			"Expect end for AlwaysFalse predicate");
+	string expected = "hello\n";
+	expected += "logger.cpp hello\n";
+	expected += "logger.cpp:10 hello\n";
+	expected += "Line 13 hello\n";
+	ASSERT_EQUAL(logs.str(), expected);
 }
 
 int main() {
 	TestRunner tr;
-	tr.RunTest(TestUniqueMax, "TestUniqueMax");
-	tr.RunTest(TestSeveralMax, "TestSeveralMax");
-	tr.RunTest(TestNoMax, "TestNoMax");
-	return 0;
+	RUN_TEST(tr, TestLog);
 }

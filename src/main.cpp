@@ -1,21 +1,14 @@
-#include "test_runner.h"
-
-#include <ostream>
+#include <string>
+#include <vector>
 using namespace std;
 
-#define PRINT_VALUES(out, x, y) PrintValues(out, x, y) // No need macro at all in this task. Template function will be better.
-
-template<typename T, typename R>
-void PrintValues(ostream &out, const T &x, const R &y) {
-	out << x << endl;
-	out << y << endl;
-}
+#define CONCAT_2(x, y) x##y
+#define CONCAT_1(x, y) CONCAT_2(x, y)
+#define UNIQ_ID CONCAT_1(id_, __LINE__)
 
 int main() {
-	TestRunner tr;
-	tr.RunTest([] {
-		ostringstream output;
-		PRINT_VALUES(output, 5, "red belt");
-		ASSERT_EQUAL(output.str(), "5\nred belt\n");
-	}, "PRINT_VALUES usage example");
+  int UNIQ_ID = 0;
+  string UNIQ_ID = "hello";
+  vector<string> UNIQ_ID = {"hello", "world"};
+  vector<int> UNIQ_ID = {1, 2, 3, 4};
 }

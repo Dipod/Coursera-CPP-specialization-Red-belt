@@ -1,31 +1,33 @@
-Вам дан макрос, который распечатывает два переданных ему значения в переданный поток вывода.
-В реализации макроса есть недостаток, ограничивающий его применимость в реальных программах.
-Вам требуется найти и устранить недостаток.
+Разработать макрос UNIQ_ID, который будет формировать идентификатор, уникальный в пределах данного cpp-файла.
+Например, следующий код должен компилироваться и работать:
 
-#define PRINT_VALUES(out, x, y) out << (x) << endl; out << (y) << endl
+int UNIQ_ID = 5;
+string UNIQ_ID = "hello!";
 
-Автор задачи — Борис Егоров
+В рамках данной задачи допускается, что код
 
-Заготовка решения
+int UNIQ_ID = 5; string UNIQ_ID = "hello"; // оба определения на одной строке
 
-print_values.cpp
+не будет компилироваться. Заготовка решения:
 
-#include "test_runner.h"
+uniq_id.cpp
 
-#include <ostream>
+#include <string>
+#include <vector>
 using namespace std;
 
-#define PRINT_VALUES(out, x, y) out << (x) << endl; out << (y) << endl
+#define UNIQ_ID // Реализуйте этот макрос так, чтобы функция main компилировалась
 
 int main() {
-  TestRunner tr;
-  tr.RunTest([] {
-    ostringstream output;
-    PRINT_VALUES(output, 5, "red belt");
-    ASSERT_EQUAL(output.str(), "5\nred belt\n");
-  }, "PRINT_VALUES usage example");
+  int UNIQ_ID = 0;
+  string UNIQ_ID = "hello";
+  vector<string> UNIQ_ID = {"hello", "world"};
+  vector<int> UNIQ_ID = {1, 2, 3, 4};
 }
 
-Для этой задачи есть набор подсказок, которые должны помочь вам с решением.
-Если вам не удаётся решить задачу и вы чувствуете, что у вас кончились идеи, вы можете ими воспользоваться.
-Но сначала обязательно попробуйте решить задачу без подсказок.
+Подсказки:
+
+    * подумайте, как можно применить макрос __LINE__
+    * ознакомьтесь с конкатенацией в макросах https://gcc.gnu.org/onlinedocs/cpp/Concatenation.html#Concatenation
+    * а также с макросами в качестве параметров других макросов https://stackoverflow.com/questions/4364971/and-in-macros
+    

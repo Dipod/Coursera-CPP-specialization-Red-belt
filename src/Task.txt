@@ -1,128 +1,73 @@
-В данной задаче необходимо оптимизировать код, использующийся для сортировки студентов по рейтингу.
-Данные каждого студента находятся в структуре Student, объявленной в файле student.h.
-Рейтинг студента записан в поле rating:
+Студента попросили написать класс Learner, помогающий изучать иностранный язык.
+В публичном интерфейсе класса должны быть две функции:
 
-struct Student {
-  string first_name;
-  string last_name;
-  map<string, double> marks;
-  double rating;
+int Learn(const vector<string>& words);
+vector<string> KnownWords();
 
-  bool operator < (const Student& other) const {
-    return GetName() < other.GetName();
-  }
+Функция Learn должна получать порцию слов, "запоминать" их и возвращать количество различных новых слов.
+Функция KnownWords должна возвращать отсортированный по алфавиту список всех выученных слов.
+В списке не должно быть повторов.
 
-  bool Less(const Student& other) const {
-    return rating > other.rating;
-  }
+Студент написал следующее решение этой задачи, однако оно почему-то работает очень медленно.
+Вам надо его ускорить.
 
-  string GetName() const {
-    return first_name + " " + last_name;
-  }
-};
+Вам дан файл learner.cpp с медленным решением задачи.
+Не меняя публичный интерфейс класса Learner, найдите в нём узкие места,
+исправьте их и сдайте переделанный класс в тестирующую систему.
 
-Для сортировки студентов по рейтингу используется функция сравнения, возвращающая true,
-если рейтинг студента first выше рейтинга студента second.
-
-bool Compare(Student first, Student second) {
-  return first.Less(second);
-}
-
-Было выявлено, что эта функция является узким местом процесса сортировки, и именно её нужно оптимизировать.
-
-Пришлите на проверку файл, содержащий оптимизированную версию функции Compare.
-Если ваша реализация будет недостаточно эффективной, то решение не уложится в ограничение по времени.
-
-student.h
-
-#pragma once
-
-#include <map>
-#include <string>
-
-using namespace std;
-
-struct Student {
-  string first_name;
-  string last_name;
-  map<string, double> marks;
-  double rating;
-
-  bool operator < (const Student& other) const {
-    return GetName() < other.GetName();
-  }
-
-  bool Less(const Student& other) const {
-    return rating > other.rating;
-  }
-
-  string GetName() const {
-    return first_name + " " + last_name;
-  }
-};
-
-sort_students.cpp
-
-#include "student.h"
-#include "test_runner.h"
+learner.cpp
 
 #include <algorithm>
+#include <string>
+#include <vector>
 
 using namespace std;
 
-//Оптимизируйте эту функцию
-bool Compare(Student first, Student second) {
-  return first.Less(second);
-}
+class Learner {
+ private:
+  vector<string> dict;
 
-void TestComparison() {
-  Student newbie {
-    "Ivan", "Ivanov", {
-      {"c++", 1.0},
-      {"algorithms", 3.0}
-    },
-    2.0
-  };
+ public:
+  int Learn(const vector<string>& words) {
+    int newWords = 0;
+    for (const auto& word : words) {
+      if (find(dict.begin(), dict.end(), word) == dict.end()) {
+        ++newWords;
+        dict.push_back(word);
+      }
+    }
+    return newWords;
+  }
 
-  Student cpp_expert {
-    "Petr", "Petrov", {
-      {"c++", 9.5},
-      {"algorithms", 6.0}
-    },
-    7.75
-  };
+  vector<string> KnownWords() {
+    sort(dict.begin(), dict.end());
+    dict.erase(unique(dict.begin(), dict.end()), dict.end());
+    return dict;
+  }
+};
 
-  Student guru {
-    "Sidor", "Sidorov", {
-      {"c++", 10.0},
-      {"algorithms", 10.0}
-    },
-    10.0
-  };
-  ASSERT(Compare(guru, newbie));
-  ASSERT(Compare(guru, cpp_expert));
-  ASSERT(!Compare(newbie, cpp_expert));
-}
-
-void TestSorting() {
-  vector<Student> students {
-    {"Sidor", "Sidorov", {{"maths", 2.}}, 2.},
-    {"Semen", "Semenov", {{"maths", 4.}}, 4.},
-    {"Ivan", "Ivanov", {{"maths", 5.}}, 5.},
-    {"Petr", "Petrov", {{"maths", 3.}}, 3.},
-    {"Alexander", "Alexandrov", {{"maths", 1.}}, 1.}
-  };
-  sort(students.begin(), students.end(), Compare);
-  ASSERT(is_sorted(students.begin(), students.end(),
-    [](Student first, Student second) {
-      return first.Less(second);
-    })
-  );
-}
+Ваш код будет тестироваться так:
 
 int main() {
-  TestRunner tr;
-  RUN_TEST(tr, TestComparison);
-  RUN_TEST(tr, TestSorting);
-  return 0;
+  Learner learner;
+  string line;
+  while (getline(cin, line)) {
+    vector<string> words;
+    stringstream ss(line);
+    string word;
+    while (ss >> word) {
+      words.push_back(word);
+    }
+    cout << learner.Learn(words) << "\n";
+  }
+  cout << "=== known words ===\n";
+  for (auto word : learner.KnownWords()) {
+    cout << word << "\n";
+  }
 }
+
+Подсказки
+
+Для этой задачи есть подсказки, которые должны помочь вам с решением.
+Если вам не удаётся решить задачу и вы чувствуете, что у вас кончились идеи, вы можете воспользоваться.
+Но сначала обязательно попробуйте решить задачу без подсказок.
